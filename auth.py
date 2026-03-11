@@ -65,7 +65,14 @@ def exchange_code(code: str) -> dict | None:
     try:
         response = httpx.post(token_endpoint, headers=headers, data=data)
         response.raise_for_status()
-        return response.json()
+        
+        token_data = response.json()
+        
+        # Save the id_token in our local session so we can use it for logout later
+        import streamlit as st
+        st.session_state["id_token"] = token_data.get("id_token")
+        
+        return token_data
     except Exception as e:
         print(f"Error exchanging code: {e}")
         return None
@@ -84,3 +91,25 @@ def get_user_info(id_token: str) -> dict | None:
     except Exception as e:
         print(f"Error decoding ID token: {e}")
         return None
+
+
+def get_logout_url(id_token: str = None) -> str:
+    """Generates the Okta logout URL to terminate the Okta session."""
+    if not all([OKTA_DOMAIN, REDIRECT_URI]):
+        return None
+        
+    logout_endpoint = f"{OKTA_DOMAIN.rstrip('/')}/oauth2/default/v1/logout"
+    
+    params = {
+        "post_logout_redirect_uri": REDIRECT_URI
+    }
+    
+    if id_token:
+        params["id_token_hint"] = id_token
+        
+    url_parts = list(urllib.parse.urlparse(logout_endpoint))
+    query = dict(urllib.parse.parse_qsl(url_parts[4]))
+    query.update(params)
+    url_parts[4] = urllib.parse.urlencode(query)
+
+    return urllib.parse.urlunparse(url_parts)

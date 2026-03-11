@@ -16,9 +16,18 @@ def is_session_expired():
     return elapsed_time > SESSION_TIMEOUT_SECONDS
 
 def logout():
-    """Clears the session state."""
+    """Clears the session state and redirects to Okta to kill the SSO session."""
+    id_token = st.session_state.get("id_token")
+    logout_url = auth.get_logout_url(id_token)
+    
     st.session_state.clear()
-    st.rerun()
+    
+    if logout_url:
+        # Redirect the user to Okta to actually end their SSO session
+        st.markdown(f'<meta http-equiv="refresh" content="0;url={logout_url}">', unsafe_allow_html=True)
+        st.stop()
+    else:
+        st.rerun()
 
 def authenticate():
     """Handles the Okta OAuth2.0 authentication flow."""
@@ -147,13 +156,23 @@ def render_chatbot():
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 def main():
+    # 0. Check for logout redirect from Okta
+    if "logout" in st.query_params:
+        st.query_params.clear()
+        st.success("Successfully logged out of Okta.")
+        
     # 1. Process any incoming authentication redirects
     authenticate()
     
     # 2. Check if we are authenticated and the session is valid
     is_auth = st.session_state.get("authenticated", False)
     
-    if not is_auth or is_session_expired():
+    if is_auth and is_session_expired():
+        # If they were authenticated but expired, force a full Okta logout
+        logout()
+        return
+
+    if not is_auth:
         render_login_page()
     else:
         render_chatbot()
