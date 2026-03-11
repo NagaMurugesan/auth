@@ -30,6 +30,9 @@ def get_login_url(state=""):
         "scope": "openid profile email", 
         "redirect_uri": REDIRECT_URI,
         "state": state,
+        # 'prompt=login' forces the user to re-authenticate at Okta, 
+        # bypassing any existing active Okta SSO sessions.
+        "prompt": "login"
     }
 
     url_parts = list(urllib.parse.urlparse(auth_endpoint))

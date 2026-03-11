@@ -101,6 +101,20 @@ def render_chatbot():
         mins, secs = divmod(remaining, 60)
         st.write(f"Session expires in: `{mins:02d}:{secs:02d}`")
         
+        # Auto-reload page when session expires
+        if remaining > 0:
+            import streamlit.components.v1 as components
+            components.html(
+                f"""
+                <script>
+                    setTimeout(function() {{
+                        window.parent.location.reload();
+                    }}, {(remaining + 2) * 1000});
+                </script>
+                """,
+                height=0
+            )
+
         if st.button("Logout"):
             logout()
 
