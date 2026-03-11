@@ -84,12 +84,16 @@ def render_chatbot():
 
     # User Information
     user_info = st.session_state.get("user_info", {})
-    # Depending on Okta mapping, Windows Logon ID can be in 'preferred_username' or 'email'
-    user_id = user_info.get("preferred_username") or user_info.get("email") or user_info.get("sub") or "User"
+    email = user_info.get("email", "Unknown Email")
+    # Windows Logon ID is typically mapped to preferred_username in Desktop SSO
+    windows_id = user_info.get("preferred_username", "Unknown Logon ID")
+    # Determine what to call the user in the chat
+    display_name = user_info.get("name") or (email.split('@')[0] if email != "Unknown Email" else windows_id.split('@')[0])
 
     # Sidebar for session info and logout
     with st.sidebar:
-        st.write(f"Logged in as: **{user_id}**")
+        st.write(f"**Email:** {email}")
+        st.write(f"**Windows ID:** {windows_id}")
         
         # Display session time remaining
         elapsed = time.time() - st.session_state.get("login_time", time.time())
@@ -120,7 +124,7 @@ def render_chatbot():
 
         # Generate bot response
         # In a real app, you would call an LLM API here
-        response = f"Hello {user_id.split('@')[0]}! You said: '{prompt}'. This is an echo response from your Okta-authenticated bot."
+        response = f"Hello {display_name}! You said: '{prompt}'. This is an echo response from your Okta-authenticated bot."
         
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
