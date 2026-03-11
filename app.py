@@ -75,11 +75,8 @@ def render_login_page():
     login_url = auth.get_login_url(state="verify")
     
     if login_url:
-        # Provide a manual button as a fallback
+        # Provide a manual login button
         st.markdown(f'<a href="{login_url}" target="_self"><button style="padding:10px; background-color:#007bff; color:white; border:none; border-radius:5px; cursor:pointer;">Login with Okta / Windows SSO</button></a>', unsafe_allow_html=True)
-        
-        # Automatically redirect the browser to Okta immediately
-        st.markdown(f'<meta http-equiv="refresh" content="0;url={login_url}">', unsafe_allow_html=True)
     else:
         st.error("Okta configuration is missing. Please check your .env file.")
 
