@@ -3,14 +3,10 @@
 The application has been successfully created. Here is what has been built and how to run your local tests.
 
 ## Changes Made
-1. **[requirements.txt](file:///d:/murugesan.nagarajan/project/OAuth2/requirements.txt)**: Added `streamlit`, `httpx`, `python-jose`, and `python-dotenv` dependencies.
+1. **[requirements.txt](file:///d:/murugesan.nagarajan/project/OAuth2/requirements.txt)**: Verified `streamlit`, `httpx`, `python-jose`, and `python-dotenv` dependencies are present.
 2. **[.env.template](file:///d:/murugesan.nagarajan/project/OAuth2/.env.template)**: A template file you must copy to `.env` containing Okta settings.
-3. **[auth.py](file:///d:/murugesan.nagarajan/project/OAuth2/auth.py)**: A helper module that handles generating the login URL, exchanging the authorization code, and decoding the token to extract the Windows Logon ID / username.
-4. **[app.py](file:///d:/murugesan.nagarajan/project/OAuth2/app.py)**: The main Streamlit UI containing:
-   - Logic that inspects `st.session_state` and the URL parameters (`st.query_params`) to determine if a user is logged in.
-   - An auto-redirect loop that immediately bounces anonymous users to your Okta domain via client-side Javascript.
-   - Session enforcement calculating `time.time() - st.session_state.login_time > 1800` (30 minutes) and logging the user out if exceeded.
-   - An Enterprise Chatbot UI with `st.chat_message` displaying who the user logged in as.
+3. **[auth.py](file:///d:/murugesan.nagarajan/project/OAuth2/auth.py)**: Enhanced to retrieve the JSON Web Key Set (JWKS) from Okta and properly verify the JWT signature, `issuer`, `audience`, and `nonce` claim instead of skipping verification.
+4. **[app.py](file:///d:/murugesan.nagarajan/project/OAuth2/app.py)**: Updated to generate cryptographically secure, dynamic `state` and `nonce` parameters in `st.session_state` during login, preventing Cross-Site Request Forgery (CSRF) and token Replay attacks. Improved error handling during the authentication callback.
 
 ## Next Steps for Validation
 
