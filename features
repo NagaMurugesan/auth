@@ -1,7 +1,0 @@
-The security enhancements have been fully implemented!
-
-Here is a summary of the protections added:
-
-CSRF Protection: The application now generates a secure, random state parameter before redirecting to Okta and verifies it upon the callback.
-Replay Attack Prevention: A secure nonce is generated and sent to Okta, and verified against the Okta claims in the returned ID token.
-Strict JWT Signature Validation: Instead of blindly trusting the token, auth.py now fetches your Okta organization's JSON Web Key Set (JWKS) and cryptographically verifies the RS256 signature, the issuer URL, and the intended audience (Client ID).

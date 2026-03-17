@@ -1,2 +1,0 @@
-Can you build a chatbot kind of UI using streamlit app and authendicate the login user using okta Oauth2.0 authentication.
-when a user hit the url it should validate the user based on windows logon id.  implement solution to expire the session in 30 mins

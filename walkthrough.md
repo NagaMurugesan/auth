@@ -1,6 +1,6 @@
 # Streamlit Chatbot with Okta OAuth2.0 Verification Walkthrough
 
-The application has been successfully created. Here is what has been built and how to run your local tests.
+
 
 ## Changes Made
 1. **[requirements.txt](file:///d:/murugesan.nagarajan/project/OAuth2/requirements.txt)**: Verified `streamlit`, `httpx`, `python-jose`, and `python-dotenv` dependencies are present.
