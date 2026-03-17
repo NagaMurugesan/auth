@@ -1,6 +1,6 @@
-# Enterprise Data Assistant with Okta OAuth 2.0 Integration
+# Enterprise Chat Interface with Okta OAuth 2.0 Integration
 
-A robust securely-authenticated Streamlit application demonstrating seamless integration with Okta for Enterprise Single Sign-On (SSO). Built for the modern enterprise, this chatbot validates users using their Windows Logon ID via Desktop SSO and handles session lifecycle management securely.
+A robust securely-authenticated Streamlit application demonstrating seamless integration with Okta for Enterprise Single Sign-On (SSO). Built for the modern enterprise, this User Interface  validates users using their Enterprise Single Sign-On and handles session lifecycle management securely.
 
 ## 🌟 Key Features
 
