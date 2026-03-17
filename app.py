@@ -63,7 +63,11 @@ def authenticate():
             if token_response and "id_token" in token_response:
                 # Extract user info with signature and nonce verification
                 expected_nonce = st.session_state.get("oauth_nonce")
-                user_info = auth.get_user_info(token_response["id_token"], nonce=expected_nonce)
+                user_info = auth.get_user_info(
+                    id_token=token_response["id_token"],
+                    access_token=token_response.get("access_token"),
+                    nonce=expected_nonce
+                )
                 
                 if user_info:
                     # Successful login

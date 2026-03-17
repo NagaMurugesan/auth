@@ -81,7 +81,7 @@ def exchange_code(code: str) -> dict | None:
         return None
 
 
-def get_user_info(id_token: str, nonce: str = None) -> dict | None:
+def get_user_info(id_token: str, access_token: str = None, nonce: str = None) -> dict | None:
     """Extracts and rigorously verifies user information from the ID token."""
     try:
         if not OKTA_DOMAIN or not CLIENT_ID:
@@ -102,7 +102,8 @@ def get_user_info(id_token: str, nonce: str = None) -> dict | None:
             jwks,
             algorithms=["RS256"],
             audience=CLIENT_ID,
-            issuer=issuer
+            issuer=issuer,
+            access_token=access_token
         )
         
         # 3. Verify Nonce to prevent Replay Attacks
