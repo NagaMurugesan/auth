@@ -19,41 +19,35 @@ A robust securely-authenticated Streamlit application demonstrating seamless int
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User
-    participant Browser
-    participant Streamlit UI (app.py)
-    participant Auth Service (auth.py)
-    participant Okta (OIDC)
+    actor U as User
+    participant B as Browser
+    participant S as Streamlit App
+    participant A as Auth Service
+    participant O as Okta (OIDC)
 
-    User->>Browser: Access http://localhost:8501
-    Browser->>Streamlit UI: GET /
-    Streamlit UI->>Streamlit UI: Check st.session_state for user
-    Note right of Streamlit UI: User not found
+    U->>B: Access Application
+    B->>S: GET / (Check Session)
+    S->>A: Request Auth URL
+    A-->>S: Return URL with State & Nonce
+    S-->>B: HTTP 302 Redirect to Okta
     
-    Streamlit UI->>Auth Service: Request Authorization URL
-    Auth Service->>Auth Service: Generate State & Nonce
-    Auth Service-->>Streamlit UI: Return Okta Auth URL
-    Streamlit UI-->>Browser: HTTP 302 Redirect to Okta
+    B->>O: GET /authorize (Login)
+    Note over O: User Authenticates
+    O-->>B: HTTP 302 Redirect with Auth Code
     
-    Browser->>Okta: GET /oauth2/v1/authorize (with state, nonce)
-    Note over Okta: Authenticates user (e.g., Desktop SSO)
-    Okta-->>Browser: HTTP 302 Redirect to http://localhost:8501/?code=...&state=...
+    B->>S: GET /?code=... (Callback)
+    Note over S: Validate CSRF State
+    S->>A: Exchange Code for Tokens
+    A->>O: POST /token
+    O-->>A: Return ID & Access Tokens
     
-    Browser->>Streamlit UI: GET /?code=...&state=...
-    Streamlit UI->>Streamlit UI: Verify State (CSRF check)
-    Streamlit UI->>Auth Service: Pass Auth Code
-    Auth Service->>Okta: POST /oauth2/v1/token
-    Okta-->>Auth Service: Return Tokens (ID & Access)
+    A->>O: GET /keys (Fetch JWKS)
+    O-->>A: Return Public Keys
+    Note over A: Validate JWT Signature<br/>Verify at_hash & Nonce
+    A-->>S: Return Validated Identity
     
-    Auth Service->>Okta: GET /oauth2/v1/keys (JWKS)
-    Okta-->>Auth Service: Return Public Keys
-    Auth Service->>Auth Service: Validate JWT Signature, Issuer, Audience
-    Auth Service->>Auth Service: Verify Token Binding (at_hash)
-    Auth Service->>Auth Service: Verify Nonce (Replay defense)
-    Auth Service-->>Streamlit UI: Return Validated Claims
-    
-    Streamlit UI->>Streamlit UI: Initialize Secure Session (30 min)
-    Streamlit UI-->>Browser: Render Chatbot Interface
+    Note over S: Create Secure Session
+    S-->>B: Render Chatbot UI
 ```
 
 The application is split into two primary components to maintain clean architecture and security:
