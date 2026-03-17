@@ -11,7 +11,7 @@ CLIENT_ID = os.environ.get("OKTA_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("OKTA_CLIENT_SECRET")
 REDIRECT_URI = os.environ.get("REDIRECT_URI")
 
-def get_login_url(state=""):
+def get_login_url(state="", nonce=""):
     """Generates the Okta authorization URL."""
     if not all([OKTA_DOMAIN, CLIENT_ID, REDIRECT_URI]):
         return None
@@ -34,6 +34,9 @@ def get_login_url(state=""):
         # bypassing any existing active Okta SSO sessions.
         "prompt": "login"
     }
+    
+    if nonce:
+        params["nonce"] = nonce
 
     url_parts = list(urllib.parse.urlparse(auth_endpoint))
     query = dict(urllib.parse.parse_qsl(url_parts[4]))
@@ -78,18 +81,38 @@ def exchange_code(code: str) -> dict | None:
         return None
 
 
-def get_user_info(id_token: str) -> dict | None:
-    """Extracts user information from the decoded ID token.
-       Okta's Desktop SSO puts the user's Active Directory UPN or 
-       samAccountName into the token claims depending on configuration.
-    """
+def get_user_info(id_token: str, nonce: str = None) -> dict | None:
+    """Extracts and rigorously verifies user information from the ID token."""
     try:
-        # We are skipping signature verification here for simplicity in the Streamlit app demo,
-        # but in production you MUST securely verify the token signature using Okta's JWKS.
-        claims = jwt.get_unverified_claims(id_token)
+        if not OKTA_DOMAIN or not CLIENT_ID:
+            print("Missing Okta configuration for token verification.")
+            return None
+            
+        # 1. Fetch JSON Web Key Set (JWKS)
+        jwks_uri = f"{OKTA_DOMAIN.rstrip('/')}/oauth2/default/v1/keys"
+        jwks_response = httpx.get(jwks_uri)
+        jwks_response.raise_for_status()
+        jwks = jwks_response.json()
+        
+        # 2. Verify Token Signature and Claims
+        issuer = f"{OKTA_DOMAIN.rstrip('/')}/oauth2/default"
+        
+        claims = jwt.decode(
+            id_token,
+            jwks,
+            algorithms=["RS256"],
+            audience=CLIENT_ID,
+            issuer=issuer
+        )
+        
+        # 3. Verify Nonce to prevent Replay Attacks
+        if nonce and claims.get("nonce") != nonce:
+            print(f"Nonce mismatch! Expected {nonce}, got {claims.get('nonce')}")
+            return None
+            
         return claims
     except Exception as e:
-        print(f"Error decoding ID token: {e}")
+        print(f"Error decoding or verifying ID token: {e}")
         return None
 
 

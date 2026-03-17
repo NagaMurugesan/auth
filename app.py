@@ -1,4 +1,5 @@
 import time
+import secrets
 import streamlit as st
 import auth
 
@@ -37,6 +38,7 @@ def authenticate():
     if "code" in query_params:
         # We are coming back from Okta login
         code = query_params["code"]
+        returned_state = query_params.get("state")
         
         # Prevent double-processing
         if "processing_code" in st.session_state:
@@ -44,24 +46,38 @@ def authenticate():
 
         st.session_state["processing_code"] = True
         
+        # 1. Verify State for CSRF Protection
+        expected_state = st.session_state.get("oauth_state")
+        if not expected_state or returned_state != expected_state:
+            st.error("Authentication failed: State mismatch (possible CSRF attack).")
+            # Clear query params to prevent redirect loop
+            st.query_params.clear()
+            st.stop()
+            
         with st.spinner("Authenticating..."):
             token_response = auth.exchange_code(code)
             
             if token_response and "id_token" in token_response:
-                # Extract user info
-                user_info = auth.get_user_info(token_response["id_token"])
+                # Extract user info with signature and nonce verification
+                expected_nonce = st.session_state.get("oauth_nonce")
+                user_info = auth.get_user_info(token_response["id_token"], nonce=expected_nonce)
+                
                 if user_info:
                     # Successful login
                     st.session_state["authenticated"] = True
                     st.session_state["user_info"] = user_info
                     st.session_state["login_time"] = time.time()
                     
+                    # Clean up security parameters from session state after successful use
+                    st.session_state.pop("oauth_state", None)
+                    st.session_state.pop("oauth_nonce", None)
+                    
                     # Clear query params so a refresh doesn't error out
                     st.query_params.clear()
                     del st.session_state["processing_code"]
                     st.rerun()
                 else:
-                    st.error("Failed to parse user info from Okta.")
+                    st.error("Failed to parse and verify user info from Okta.")
                     del st.session_state["processing_code"]
             else:
                 st.error("Authentication failed. Invalid authorization code or configuration.")
@@ -72,7 +88,16 @@ def render_login_page():
     st.title("Enterprise Chatbot System")
     st.info("Authentication required. You will be redirected to Okta.")
     
-    login_url = auth.get_login_url(state="verify")
+    # Generate secure random strings for CSRF and Replay attack prevention
+    if "oauth_state" not in st.session_state:
+        st.session_state["oauth_state"] = secrets.token_urlsafe(32)
+    if "oauth_nonce" not in st.session_state:
+        st.session_state["oauth_nonce"] = secrets.token_urlsafe(32)
+        
+    login_url = auth.get_login_url(
+        state=st.session_state["oauth_state"],
+        nonce=st.session_state["oauth_nonce"]
+    )
     
     if login_url:
         # Provide a manual login button
