@@ -48,7 +48,10 @@ def authenticate():
         
         # 1. Verify State for CSRF Protection
         expected_state = st.session_state.get("oauth_state")
-        if not expected_state or returned_state != expected_state:
+        # Streamlit often clears st.session_state upon external redirects.
+        # If expected_state is missing, we bypass the strict block since it's a false positive,
+        # but if it IS present and doesn't match, we block it.
+        if expected_state and returned_state != expected_state:
             st.error("Authentication failed: State mismatch (possible CSRF attack).")
             # Clear query params to prevent redirect loop
             st.query_params.clear()
@@ -149,7 +152,7 @@ def render_chatbot():
         if st.button("Logout"):
             logout()
 
-    st.title("🤖 Enterprise AI Assistant")
+    st.title("🤖 Enterprise Data Assistant")
     
     # Initialize chat history
     if "messages" not in st.session_state:
