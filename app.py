@@ -1,5 +1,6 @@
 import time
 import secrets
+import uuid
 import streamlit as st
 import auth
 
@@ -128,7 +129,15 @@ def render_chatbot():
     # Determine what to call the user in the chat
     display_name = user_info.get("name") or (email.split('@')[0] if email != "Unknown Email" else windows_id.split('@')[0])
 
-    # Sidebar for session info and logout
+    # Initialize conversations state
+    if "conversations" not in st.session_state:
+        initial_chat_id = str(uuid.uuid4())
+        st.session_state.conversations = {
+            initial_chat_id: {"title": "New Chat", "messages": []}
+        }
+        st.session_state.current_chat_id = initial_chat_id
+
+    # Sidebar for session info, logout, and chat history
     with st.sidebar:
         st.write(f"**Email:** {email}")
         st.write(f"**Windows ID:** {windows_id}")
@@ -155,24 +164,47 @@ def render_chatbot():
 
         if st.button("Logout"):
             logout()
+            
+        st.divider()
+        
+        # New Chat Button
+        if st.button("➕ New Chat", use_container_width=True):
+            new_id = str(uuid.uuid4())
+            st.session_state.conversations[new_id] = {"title": "New Chat", "messages": []}
+            st.session_state.current_chat_id = new_id
+            st.rerun()
+
+        st.subheader("Chat History")
+        
+        # Sort or display conversations (reverse chronological or as added)
+        # Using a list to ensure deterministic ordering and support for slicing/reversing
+        for chat_id, chat_data in list(st.session_state.conversations.items())[::-1]:
+            # Highlight current chat
+            is_current = (chat_id == st.session_state.current_chat_id)
+            title = f"{'✅ ' if is_current else '💬 '}{chat_data['title']}"
+            if st.button(title, key=f"btn_{chat_id}", use_container_width=True):
+                st.session_state.current_chat_id = chat_id
+                st.rerun()
 
     st.title("🤖 Enterprise Data Assistant")
     
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    current_chat_id = st.session_state.current_chat_id
+    current_chat = st.session_state.conversations[current_chat_id]
 
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
+    # Display chat messages from current history on app rerun
+    for message in current_chat["messages"]:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
     # React to user input
     if prompt := st.chat_input("How can I help you today?"):
+        if len(current_chat["messages"]) == 0:
+            current_chat["title"] = prompt[:30] + ("..." if len(prompt) > 30 else "")
+            
         # Display user message in chat message container
         st.chat_message("user").markdown(prompt)
         # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        current_chat["messages"].append({"role": "user", "content": prompt})
 
         # Generate bot response
         # In a real app, you would call an LLM API here
@@ -182,7 +214,7 @@ def render_chatbot():
         with st.chat_message("assistant"):
             st.markdown(response)
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        current_chat["messages"].append({"role": "assistant", "content": response})
 
 def main():
     # 0. Check for logout redirect from Okta
